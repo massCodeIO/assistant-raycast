@@ -6,13 +6,14 @@
   "icon": "massCode.png",
   "author": "antonreshetov",
   "categories": [
-    "Productivity"
+    "Productivity",
+    "Developer Tools"
   ],
   "license": "MIT",
   "commands": [
     {
       "name": "index",
-      "title": "massCode Assistant",
+      "title": "MassCode Assistant",
       "description": "Fetch snippets from massCode app",
       "mode": "view"
     }
