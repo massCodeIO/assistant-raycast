@@ -13,7 +13,7 @@
     {
       "name": "index",
       "title": "massCode Assistant",
-      "description": "Template with a plain detail view",
+      "description": "Fetch snippets from massCode app",
       "mode": "view"
     }
   ],
