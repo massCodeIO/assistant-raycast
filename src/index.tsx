@@ -1,4 +1,4 @@
-import { Action, ActionPanel, Icon, List } from "@raycast/api";
+import { Action, ActionPanel, Icon, List, showToast, Toast } from "@raycast/api";
 import axios from "axios";
 import { useEffect, useState } from "react";
 
@@ -22,7 +22,7 @@ interface Snippet {
 
 interface State {
   snippets?: Snippet[];
-  error?: Error
+  error?: Error;
 }
 
 export default function Command() {
@@ -40,6 +40,10 @@ export default function Command() {
 
     fetchData();
   }, []);
+
+  if (state.error) {
+    showToast(Toast.Style.Failure, "massCode app is not running");
+  }
 
   return (
     <List searchBarPlaceholder="Type to search snippets">
