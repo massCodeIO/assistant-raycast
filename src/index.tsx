@@ -1,29 +1,7 @@
 import { Action, ActionPanel, Icon, List, showToast, Toast } from "@raycast/api";
 import axios from "axios";
 import { useEffect, useState } from "react";
-
-interface SnippetContent {
-  label: string;
-  language: string;
-  value: string;
-}
-
-interface Snippet {
-  id: string;
-  name: string;
-  content: SnippetContent[];
-  folderId: string;
-  tagsIds: string[];
-  isFavorites: boolean;
-  isDeleted: boolean;
-  createdAt: number;
-  updatedAt: number;
-}
-
-interface State {
-  snippets?: Snippet[];
-  error?: Error;
-}
+import type { Snippet, State } from "./types";
 
 export default function Command() {
   const [state, setState] = useState<State>({ snippets: [] });
