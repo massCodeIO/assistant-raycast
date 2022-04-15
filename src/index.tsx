@@ -31,7 +31,7 @@ export default function Command() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get<Snippet[]>("http://localhost:3033/snippets");
+        const res = await axios.get<Snippet[]>("http://localhost:3033/snippets/embed-folder");
         setState({ snippets: res.data });
       } catch (err) {
         setState({ error: err instanceof Error ? err : new Error("Something went wrong") });
@@ -54,7 +54,7 @@ export default function Command() {
             title={i.name}
             subtitle={i.content[0].language}
             icon={Icon.Document}
-            accessories={[{ text: "Folder" }]}
+            accessories={[{ text: i.folder?.name ?? 'Inbox' }]}
             actions={
               <ActionPanel title="Some">
                 <ActionPanel.Section>{<Action.CopyToClipboard content={i.content[0].value} />}</ActionPanel.Section>
