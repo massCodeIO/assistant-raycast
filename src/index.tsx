@@ -17,7 +17,7 @@ export default function Command() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data} = await axios.get<Snippet[]>(`http://localhost:${PORT}/snippets`);
+        const { data } = await axios.get<Snippet[]>(`http://localhost:${PORT}/snippets`);
         const options = data.reduce((acc: ListItem[], snippet) => {
           snippet.contents.forEach((content) => {
             acc.push({
@@ -25,13 +25,13 @@ export default function Command() {
               name: content.label,
               snippetName: snippet.name,
               detail: `${content.label} • ${content.language}`,
-              description: `${snippet.folder?.name || 'Inbox'}`,
-              value: content.value ?? '',
+              description: `${snippet.folder?.name || "Inbox"}`,
+              value: content.value ?? "",
               language: content.language,
-            })
-          })
-          return acc
-        }, [])
+            });
+          });
+          return acc;
+        }, []);
         setState({ list: options });
       } catch (err) {
         setState({ error: err instanceof Error ? err : new Error(MESSAGES.ERROR) });
@@ -48,20 +48,21 @@ export default function Command() {
   return (
     <List isShowingDetail searchBarPlaceholder="Type to search snippets">
       {state.list?.map((i) => {
-        const markdownDetail = `**Fragment:** ${i.name}` +
-        `\n\n**Language:** ${i.language}\n` +
-        '```' + i.language + '\n' + i.value + '\n```'
+        const markdownDetail =
+          `**Fragment:** ${i.name}` +
+          `\n\n**Language:** ${i.language}\n` +
+          "```" +
+          i.language +
+          "\n" +
+          i.value +
+          "\n```";
         return (
           <List.Item
             key={i.id}
             title={i.snippetName}
             icon={Icon.Document}
             accessories={[{ text: i.description }]}
-            detail={
-              <List.Item.Detail
-                markdown={markdownDetail}
-              />
-            }
+            detail={<List.Item.Detail markdown={markdownDetail} />}
             actions={
               <ActionPanel title="Some">
                 <ActionPanel.Section>{<Action.CopyToClipboard content={i.value} />}</ActionPanel.Section>
