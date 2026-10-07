@@ -1,76 +1,55 @@
-import { Action, ActionPanel, Icon, List, showToast, Toast, getPreferenceValues } from "@raycast/api";
-import axios from "axios";
-import { useEffect, useState } from "react";
-import type { Snippet, State, ListItem } from "./types";
-import { MESSAGES } from "./contants";
+import { getPreferenceValues, List } from "@raycast/api";
+import { useFetch } from "@raycast/utils";
+import { useMemo, useState } from "react";
+import type { Snippet, SnippetListEntry } from "./types";
+import { EXAMPLE_SNIPPETS } from "./constants/exampleData";
+import { transformSnippets } from "./utils/transformSnippets";
+import { API_HEADERS, API_URL, getFragmentValue, parseResponse, showApiError } from "./utils/api";
+import { useAppInstallation } from "./hooks/useAppInstallation";
+import { SnippetListItem } from "./components/SnippetListItem";
 
-interface Preferences {
-  port: string;
-}
-
-const { port } = getPreferenceValues<Preferences>();
-const PORT = parseInt(port, 10) || 4321;
+const ENABLE_MOCK_DATA = getPreferenceValues<Preferences>().enableMockData;
 
 export default function Command() {
-  const [state, setState] = useState<State>({ list: [] });
+  const isInstalled = useAppInstallation(ENABLE_MOCK_DATA);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const { data } = await axios.get<Snippet[]>(`http://localhost:${PORT}/snippets`);
-        const options = data.reduce((acc: ListItem[], snippet) => {
-          snippet.contents.forEach((content) => {
-            acc.push({
-              id: content.id,
-              name: content.label,
-              snippetName: snippet.name,
-              detail: `${content.label} • ${content.language}`,
-              description: `${snippet.folder?.name || "Inbox"}`,
-              value: content.value ?? "",
-              language: content.language,
-            });
-          });
-          return acc;
-        }, []);
-        setState({ list: options });
-      } catch (err) {
-        setState({ error: err instanceof Error ? err : new Error(MESSAGES.ERROR) });
-      }
-    };
+  const { data, isLoading } = useFetch<SnippetListEntry[]>(`${API_URL}/snippets?isDeleted=0`, {
+    headers: API_HEADERS,
+    parseResponse,
+    execute: !ENABLE_MOCK_DATA && isInstalled === true,
+    onError: showApiError,
+  });
 
-    fetchData();
-  }, []);
+  const list = useMemo(() => {
+    if (ENABLE_MOCK_DATA) return EXAMPLE_SNIPPETS;
+    if (!data) return [];
+    return transformSnippets(data);
+  }, [data]);
 
-  if (state.error) {
-    showToast(Toast.Style.Failure, MESSAGES.ERROR);
-  }
+  const selected = list.find((item) => item.id === selectedId) ?? list[0];
+
+  const { data: selectedSnippet } = useFetch<Snippet>(`${API_URL}/snippets/${selected?.snippetId}`, {
+    headers: API_HEADERS,
+    parseResponse,
+    execute: !ENABLE_MOCK_DATA && selected !== undefined,
+    onError: showApiError,
+  });
 
   return (
-    <List isShowingDetail searchBarPlaceholder="Type to search snippets">
-      {state.list?.map((i) => {
-        const markdownDetail =
-          `**Fragment:** ${i.name}` +
-          `\n\n**Language:** ${i.language}\n` +
-          "```" +
-          i.language +
-          "\n" +
-          i.value +
-          "\n```";
-        return (
-          <List.Item
-            key={i.id}
-            title={i.snippetName}
-            icon={Icon.Document}
-            accessories={[{ text: i.description }]}
-            detail={<List.Item.Detail markdown={markdownDetail} />}
-            actions={
-              <ActionPanel title="Some">
-                <ActionPanel.Section>{<Action.CopyToClipboard content={i.value} />}</ActionPanel.Section>
-              </ActionPanel>
-            }
-          ></List.Item>
-        );
-      })}
+    <List
+      isLoading={!ENABLE_MOCK_DATA && (isInstalled === undefined || isLoading)}
+      isShowingDetail
+      searchBarPlaceholder="Type to search snippets"
+      onSelectionChange={setSelectedId}
+    >
+      {list.map((item) => (
+        <SnippetListItem
+          key={item.id}
+          item={item}
+          value={item === selected ? getFragmentValue(item, selectedSnippet) : item.value}
+        />
+      ))}
     </List>
   );
 }
