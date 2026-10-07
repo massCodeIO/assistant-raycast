@@ -1,64 +1,45 @@
-import { Action, ActionPanel, Icon, List } from "@raycast/api";
-import axios from "axios";
-import { useEffect, useState } from "react";
+import { List, showToast, Toast, getPreferenceValues } from "@raycast/api";
+import { useFetch } from "@raycast/utils";
+import { useMemo, useEffect } from "react";
+import type { Snippet } from "./types";
+import { MESSAGES } from "./constants";
+import { EXAMPLE_SNIPPETS } from "./constants/exampleData";
+import { transformSnippets } from "./utils/transformSnippets";
+import { useAppInstallation } from "./hooks/useAppInstallation";
+import { SnippetListItem } from "./components/SnippetListItem";
 
-interface SnippetContent {
-  label: string;
-  language: string;
-  value: string;
-}
-
-interface Snippet {
-  id: string;
-  name: string;
-  content: SnippetContent[];
-  folderId: string;
-  tagsIds: string[];
-  isFavorites: boolean;
-  isDeleted: boolean;
-  createdAt: number;
-  updatedAt: number;
-}
-
-interface State {
-  snippets?: Snippet[];
-  error?: Error
-}
+const preferences = getPreferenceValues<Preferences>();
+const PORT = parseInt(preferences.port, 10) || 4321;
+const ENABLE_MOCK_DATA = preferences.enableMockData;
 
 export default function Command() {
-  const [state, setState] = useState<State>({ snippets: [] });
+  const isInstalled = useAppInstallation(ENABLE_MOCK_DATA);
+
+  const { data, isLoading, error } = useFetch<Snippet[]>(`http://localhost:${PORT}/snippets`, {
+    execute: !ENABLE_MOCK_DATA && isInstalled === true,
+  });
+
+  const list = useMemo(() => {
+    if (ENABLE_MOCK_DATA) return EXAMPLE_SNIPPETS;
+    if (!data) return [];
+    return transformSnippets(data);
+  }, [data]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await axios.get<Snippet[]>("http://localhost:3033/snippets");
-        setState({ snippets: res.data });
-      } catch (err) {
-        setState({ error: err instanceof Error ? err : new Error("Something went wrong") });
-      }
-    };
-
-    fetchData();
-  }, []);
+    if (error && !ENABLE_MOCK_DATA) {
+      showToast(Toast.Style.Failure, MESSAGES.ERROR);
+    }
+  }, [error]);
 
   return (
-    <List searchBarPlaceholder="Type to search snippets">
-      {state.snippets?.map((i) => {
-        return (
-          <List.Item
-            key={i.id}
-            title={i.name}
-            subtitle={i.content[0].language}
-            icon={Icon.Document}
-            accessories={[{ text: "Folder" }]}
-            actions={
-              <ActionPanel title="Some">
-                <ActionPanel.Section>{<Action.CopyToClipboard content={i.content[0].value} />}</ActionPanel.Section>
-              </ActionPanel>
-            }
-          ></List.Item>
-        );
-      })}
+    <List
+      isLoading={!ENABLE_MOCK_DATA && (isInstalled === undefined || isLoading)}
+      isShowingDetail
+      searchBarPlaceholder="Type to search snippets"
+    >
+      {list.map((item) => (
+        <SnippetListItem key={item.id} item={item} />
+      ))}
     </List>
   );
 }
